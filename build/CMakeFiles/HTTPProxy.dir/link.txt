@@ -1,0 +1,3 @@
+"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\HTTPProxy.dir/objects.a
+C:\mingw64\bin\ar.exe qc CMakeFiles\HTTPProxy.dir/objects.a @CMakeFiles\HTTPProxy.dir\objects1.rsp
+C:\mingw64\bin\g++.exe -g -Wl,--whole-archive CMakeFiles\HTTPProxy.dir/objects.a -Wl,--no-whole-archive -o HTTPProxy.exe -Wl,--out-implib,libHTTPProxy.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\HTTPProxy.dir\linkLibs.rsp

@@ -1,0 +1,32 @@
+[
+{
+  "directory": "D:/23120113/HTTPProxy/build",
+  "command": "C:\\mingw64\\bin\\g++.exe   -g -std=gnu++14 -o CMakeFiles\\HTTPProxy.dir\\src\\main.cpp.obj -c D:\\23120113\\HTTPProxy\\src\\main.cpp",
+  "file": "D:/23120113/HTTPProxy/src/main.cpp",
+  "output": "CMakeFiles/HTTPProxy.dir/src/main.cpp.obj"
+},
+{
+  "directory": "D:/23120113/HTTPProxy/build",
+  "command": "C:\\mingw64\\bin\\g++.exe   -g -std=gnu++14 -o CMakeFiles\\HTTPProxy.dir\\src\\gui\\proxy_gui.cpp.obj -c D:\\23120113\\HTTPProxy\\src\\gui\\proxy_gui.cpp",
+  "file": "D:/23120113/HTTPProxy/src/gui/proxy_gui.cpp",
+  "output": "CMakeFiles/HTTPProxy.dir/src/gui/proxy_gui.cpp.obj"
+},
+{
+  "directory": "D:/23120113/HTTPProxy/build",
+  "command": "C:\\mingw64\\bin\\g++.exe   -g -std=gnu++14 -o CMakeFiles\\HTTPProxy.dir\\src\\content_filter\\content_filter.cpp.obj -c D:\\23120113\\HTTPProxy\\src\\content_filter\\content_filter.cpp",
+  "file": "D:/23120113/HTTPProxy/src/content_filter/content_filter.cpp",
+  "output": "CMakeFiles/HTTPProxy.dir/src/content_filter/content_filter.cpp.obj"
+},
+{
+  "directory": "D:/23120113/HTTPProxy/build",
+  "command": "C:\\mingw64\\bin\\g++.exe   -g -std=gnu++14 -o CMakeFiles\\HTTPProxy.dir\\src\\proxy_server\\proxy_server.cpp.obj -c D:\\23120113\\HTTPProxy\\src\\proxy_server\\proxy_server.cpp",
+  "file": "D:/23120113/HTTPProxy/src/proxy_server/proxy_server.cpp",
+  "output": "CMakeFiles/HTTPProxy.dir/src/proxy_server/proxy_server.cpp.obj"
+},
+{
+  "directory": "D:/23120113/HTTPProxy/build",
+  "command": "C:\\mingw64\\bin\\g++.exe   -g -std=gnu++14 -o CMakeFiles\\HTTPProxy.dir\\src\\proxy_server\\proxy_server_handle.cpp.obj -c D:\\23120113\\HTTPProxy\\src\\proxy_server\\proxy_server_handle.cpp",
+  "file": "D:/23120113/HTTPProxy/src/proxy_server/proxy_server_handle.cpp",
+  "output": "CMakeFiles/HTTPProxy.dir/src/proxy_server/proxy_server_handle.cpp.obj"
+}
+]
