@@ -36,7 +36,12 @@ WhitelistFilter::WhitelistFilter(const std::unordered_set<std::string>& whitelis
     : whitelist(whitelistItems) {}
 
 bool WhitelistFilter::applyFilter(const std::string& request) {
-    return whitelist.find(request) != whitelist.end();
+   for (const auto& host : whitelist) {
+        if (request.find(host) != std::string::npos) {
+            return true; 
+        }
+    }
+    return false; 
 }
 
 void WhitelistFilter::addToWhitelist(const std::string& host) {

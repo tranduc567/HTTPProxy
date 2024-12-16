@@ -9,6 +9,7 @@
 BlacklistFilter blacklistFilter;
 WhitelistFilter whitelistFilter;
 KeywordFilter keywordFilter;
+int selectedMode;
 
 int main(int argc, char* argv[]) {
     HINSTANCE hInstance = GetModuleHandle(NULL);

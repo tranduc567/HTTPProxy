@@ -8,7 +8,7 @@
 #include "../gui/proxy_gui.h"
 #include <sstream>
 #include <iomanip>
-
+extern int selectedMode;
 std::string getCurrentTime() {
     std::time_t now = std::time(nullptr);
     std::tm* localTime = std::localtime(&now);
@@ -64,24 +64,24 @@ void ProxyServer::handleClient(SOCKET clientSocket) {
     // Get the current time for the log message
     std::string currentTime = getCurrentTime();
 
-    // Apply Blacklist Filter: Block the request if the host is blacklisted
-    if (blacklistFilter.applyFilter(host)) {
-        std::string logMessage = "[" + currentTime + "] Host blocked by blacklist: " + host + "\n";
-        logToGUI(logMessage);
-        sendRedirectResponse(clientSocket); // Send a redirect response for blocked hosts
-        closesocket(clientSocket);
-        return;
+    if(!selectedMode){
+        if (blacklistFilter.applyFilter(host)) {
+            std::string logMessage = "[" + currentTime + "] Host blocked by blacklist: " + host + "\n";
+            logToGUI(logMessage);
+            sendRedirectResponse(clientSocket); // Send a redirect response for blocked hosts
+            closesocket(clientSocket);
+            return;
+        }
     }
-
-    // Apply Whitelist Filter: Only proceed if host is in the whitelist
-    // if (!whitelistFilter.applyFilter(host)) {
-    //     std::string logMessage = "[" + currentTime + "] Host blocked by whitelist filter: " + host + "\n";
-    //     logToGUI(logMessage);
-    //     sendBlockedResponse(clientSocket); // Send blocked response for non-whitelisted hosts
-    //     closesocket(clientSocket);
-    //     return;
-    // }
-
+    else{
+         if (!whitelistFilter.applyFilter(host)) {
+            std::string logMessage = "[" + currentTime + "] Host blocked by whitelist filter: " + host + "\n";
+            logToGUI(logMessage);
+            sendBlockedResponse(clientSocket); // Send blocked response for non-whitelisted hosts
+            closesocket(clientSocket);
+            return;
+        }
+    }
     // // Apply Keyword Filter: Block the request if restricted keywords are found in the body
     // if (keywordFilter.applyFilter(request)) {
     //     std::string logMessage = "[" + currentTime + "] Request contains restricted keyword, blocking host: " + host + "\n";

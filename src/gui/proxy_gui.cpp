@@ -12,59 +12,62 @@ extern BlacklistFilter blacklistFilter;
 extern WhitelistFilter whitelistFilter;
 extern KeywordFilter keywordFilter;
 
+extern int selectedMode;
+
 #define WM_LOG_MESSAGE (WM_USER + 1)  
 
 // Hàm xử lý giao diện
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    static HWND hBlacklist, hHosts, hLogBox, hAddBtn, hDeleteBtn, hStopBtn, hHelpBtn;
-    static HWND hBlacklistTitle, hHostsTitle, hLogBoxTitle;
+    static HWND hBlacklist, hHosts, hLogBox, hAddBtn, hDeleteBtn, hStopBtn, hHelpBtn, hModeComboBox;
+    static HWND hHostsTitle, hLogBoxTitle;
+    static HBRUSH hBrushBackground;
     static int windowWidth, windowHeight;
 
     switch (uMsg) {
-    case WM_CREATE: {
-        hBlacklist = CreateWindowA("edit", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_AUTOHSCROLL,
-            30, 60, 400, 200, hwnd, (HMENU)ID_LIST_BLACKLIST, NULL, NULL);
-        hBlacklistTitle = CreateWindowA("static", "Blacklist", WS_CHILD | WS_VISIBLE,
-            30, 30, 400, 30, hwnd, NULL, NULL, NULL);
+        case WM_CREATE: {
+        // Tạo ComboBox thay cho radio buttons
+        hModeComboBox = CreateWindowA("combobox", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL,
+            30, 30, 200, 100, hwnd, (HMENU)ID_COMBO_MODE, NULL, NULL);
+        
+        // Thêm các mục vào ComboBox (Blacklist và Whitelist)
+        SendMessageA(hModeComboBox, CB_ADDSTRING, 0, (LPARAM)"Blacklist");
+        SendMessageA(hModeComboBox, CB_ADDSTRING, 0, (LPARAM)"Whitelist");
+        SendMessageA(hModeComboBox, CB_SETCURSEL, 0, 0); // Mặc định chọn Blacklist
 
+        // Tạo các control khác
+        hBlacklist = CreateWindowA("edit", NULL, 
+         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL, 
+        30, 60, 400, 200, hwnd, (HMENU)ID_LIST_BLACKLIST, NULL, NULL);
+        
         hHosts = CreateWindowA("edit", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY,
             450, 60, 400, 200, hwnd, (HMENU)ID_LIST_HOSTS, NULL, NULL);
-        hHostsTitle = CreateWindowA("static", "Host Running", WS_CHILD | WS_VISIBLE,
-            450, 30, 400, 30, hwnd, NULL, NULL, NULL);
-
+        
         hLogBox = CreateWindowA("edit", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_READONLY | WS_VSCROLL,
             30, 280, 820, 200, hwnd, (HMENU)ID_LOGBOX, NULL, NULL);
-                        // Set font for the LogBox (non-bold)
+
+        // Tạo font cho LogBox
         HFONT hFont = CreateFont(
-            15,            // Font height
-            0,             // Font width (0 means automatic width)
-            0,             // Angle
-            0,             // Angle
-            FW_NORMAL,     // Font weight (FW_NORMAL is non-bold)
-            0,             // Italic (0 means false)
-            0,             // Underline (0 means false)
-            0,             // Strikeout (0 means false)
-            ANSI_CHARSET,  // Character set
-            OUT_DEFAULT_PRECIS,   // Output precision
-            CLIP_DEFAULT_PRECIS,  // Clipping precision
-            DEFAULT_QUALITY,      // Quality
-            DEFAULT_PITCH,        // Pitch
-            "Times New Roman"            // Font name
+            15, 0, 0, 0, FW_NORMAL, 0, 0, 0, ANSI_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH,
+            "Times New Roman"
         );
-        // Apply the font to the LogBox
         SendMessage(hLogBox, WM_SETFONT, (WPARAM)hFont, TRUE);
+        
         hLogBoxTitle = CreateWindowA("static", "Log Box", WS_CHILD | WS_VISIBLE,
             30, 250, 820, 30, hwnd, NULL, NULL, NULL);
-
-        hAddBtn = CreateWindowA("button", "Add to Blacklist", WS_CHILD | WS_VISIBLE,
+        hHostsTitle = CreateWindowA("static", "Host Running", WS_CHILD | WS_VISIBLE,
+            450, 30, 400, 30, hwnd, NULL, NULL, NULL);  // Đặt HostsTitle ở vị trí thích hợp
+        
+        // Tạo các button
+        hAddBtn = CreateWindowA("button", "Update List", WS_CHILD | WS_VISIBLE,
             30, 500, 190, 45, hwnd, (HMENU)ID_BTN_ADD, NULL, NULL);
-        hDeleteBtn = CreateWindowA("button", "Delete from Blacklist", WS_CHILD | WS_VISIBLE,
+        hDeleteBtn = CreateWindowA("button", "Delete All", WS_CHILD | WS_VISIBLE,
             240, 500, 220, 45, hwnd, (HMENU)ID_BTN_DELETE, NULL, NULL);
         hStopBtn = CreateWindowA("button", "Stop Proxy", WS_CHILD | WS_VISIBLE,
             480, 500, 180, 45, hwnd, (HMENU)ID_BTN_STOP, NULL, NULL);
         hHelpBtn = CreateWindowA("button", "Help", WS_CHILD | WS_VISIBLE,
             670, 500, 180, 45, hwnd, (HMENU)ID_BTN_HELP, NULL, NULL);
-
+        
         SetTimer(hwnd, 1, 1000, NULL);  // Timer ID là 1, khoảng thời gian 1000 ms
         break;
     }
@@ -74,21 +77,21 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         windowWidth = LOWORD(lParam);
         windowHeight = HIWORD(lParam);
 
-        // Thay đổi kích thước và vị trí các control
+        // Tính toán lại kích thước và vị trí các control
         int controlWidth = windowWidth / 2 - 40;
         int controlHeight = windowHeight / 3 - 40;
         int logBoxHeight = windowHeight / 3 - 40;
 
+        // Di chuyển các control
         MoveWindow(hBlacklist, 30, 60, controlWidth, controlHeight, TRUE);
         MoveWindow(hHosts, windowWidth / 2 + 20, 60, controlWidth, controlHeight, TRUE);
         MoveWindow(hLogBox, 30, windowHeight / 2 - 10, windowWidth - 50, logBoxHeight, TRUE);
 
-        MoveWindow(hAddBtn, 30, windowHeight - 100, 190, 45, TRUE);
-        MoveWindow(hDeleteBtn, 240, windowHeight - 100, 220, 45, TRUE);
-        MoveWindow(hStopBtn, 480, windowHeight - 100, 180, 45, TRUE);
-        MoveWindow(hHelpBtn, 670, windowHeight - 100, 180, 45, TRUE);
+        MoveWindow(hAddBtn, 30, windowHeight - 100, 180, 45, TRUE);
+        MoveWindow(hDeleteBtn, 230, windowHeight - 100, 180, 45, TRUE);
+        MoveWindow(hStopBtn, 430, windowHeight - 100, 180, 45, TRUE);
+        MoveWindow(hHelpBtn, 620, windowHeight - 100, 180, 45, TRUE);
 
-        MoveWindow(hBlacklistTitle, 30, 20, controlWidth, 30, TRUE);
         MoveWindow(hHostsTitle, windowWidth / 2 + 20, 20, controlWidth, 30, TRUE);
         MoveWindow(hLogBoxTitle, 30, windowHeight / 2 - 50, windowWidth - 60, 30, TRUE);
 
@@ -97,35 +100,63 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
     case WM_COMMAND: {
         int wmId = LOWORD(wParam);
-
         switch (wmId) {
+        case ID_COMBO_MODE: {
+            // Đọc giá trị của ComboBox để xác định chế độ
+            selectedMode = SendMessageA(hModeComboBox, CB_GETCURSEL, 0, 0);
+            const char* mode = (selectedMode == 0) ? "[INFO] Blacklist mode selected.\r\n" : "[INFO] Whitelist mode selected.\r\n";
+            SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)mode);
+            break;
+        }
+
         case ID_BTN_ADD: {
             char buffer[256] = {0};
             HWND hEditInput = GetDlgItem(hwnd, ID_LIST_BLACKLIST);
             if (hEditInput) {
                 int lineCount = SendMessageA(hBlacklist, EM_GETLINECOUNT, 0, 0);
-                blacklistFilter.clear();
-                for (int i = 0; i < lineCount; i++) {
-                    *((WORD*)buffer) = sizeof(buffer) - 1;
-                    int lineLength = SendMessageA(hEditInput, EM_GETLINE, i, (LPARAM)buffer);
-                    if (lineLength > 0) {
-                        std::cout << buffer << "\n";
-                        buffer[lineLength] = '\0'; 
-                        blacklistFilter.addToBlacklist(buffer);
-                        std::string logMessage = "[LOG] Added to Blacklist: " + std::string(buffer) + "\r\n";
-                        SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)logMessage.c_str());
+
+                // Determine mode based on ComboBox selection
+                selectedMode = SendMessageA(hModeComboBox, CB_GETCURSEL, 0, 0);
+                if (selectedMode == 0) {
+                    blacklistFilter.clear();
+                    for (int i = 0; i < lineCount; i++) {
+                        *((WORD*)buffer) = sizeof(buffer) - 1;
+                        int lineLength = SendMessageA(hEditInput, EM_GETLINE, i, (LPARAM)buffer);
+                        if (lineLength > 0) {
+                            buffer[lineLength] = '\0';
+                            blacklistFilter.addToBlacklist(buffer);
+                            std::string logMessage = "[LOG] Added to Blacklist: " + std::string(buffer) + "\r\n";
+                            SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)logMessage.c_str());
+                        }
                     }
+                    SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)"[INFO] Blacklist updated.\r\n");
+
+                } else {
+                    whitelistFilter.clear();
+                    for (int i = 0; i < lineCount; i++) {
+                        *((WORD*)buffer) = sizeof(buffer) - 1;
+                        int lineLength = SendMessageA(hEditInput, EM_GETLINE, i, (LPARAM)buffer);
+
+                        if (lineLength > 0) {
+                            buffer[lineLength] = '\0'; 
+                            whitelistFilter.addToWhitelist(buffer);
+                            std::string logMessage = "[LOG] Added to Whitelist: " + std::string(buffer) + "\r\n";
+                            SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)logMessage.c_str());
+                        }
+                    }
+                    SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)"[INFO] Whitelist updated.\r\n");
                 }
-                SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)"[INFO] Blacklist updated without clearing input.\r\n");
             } else {
                 SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)"[ERROR] Cannot access input control.\r\n");
             }
             break;
         }
 
-
         case ID_BTN_DELETE:
-            SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)"[LOG] Delete from Blacklist clicked.\r\n");
+            SendMessageA(hBlacklist, WM_SETTEXT, 0, (LPARAM)"");
+            SendMessageA(hHosts, WM_SETTEXT, 0, (LPARAM)"");
+            SendMessageA(hLogBox, WM_SETTEXT, 0, (LPARAM)"");
+            SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)"[LOG] All lists have been cleared.\r\n");
             break;
 
         case ID_BTN_STOP: {
@@ -147,8 +178,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case ID_BTN_HELP:
             MessageBoxA(hwnd,
                 "This is a Proxy Server GUI.\n"
-                "1. Add to Blacklist: Adds a host to the blacklist.\n"
-                "2. Delete from Blacklist: Removes a host from the blacklist.\n"
+                "1. Add to List: Adds a host to the blacklist or whitelist based on the selected mode.\n"
+                "2. Delete from List: Removes a host from the list.\n"
                 "3. Stop Proxy: Stops the proxy server.\n",
                 "Help", MB_OK | MB_HELP);
             break;
@@ -158,7 +189,68 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
         break;
     }
+
+    case WM_CTLCOLORSTATIC: {
+        HDC hdcStatic = (HDC)wParam;
+        HWND hControl = (HWND)lParam;
+        if (hControl == hHostsTitle) {
+            SetTextColor(hdcStatic, RGB(255, 0, 0));  // Set text color to red
+            SetBkColor(hdcStatic, RGB(240, 240, 240));  // Set background color to light gray
+            return (LRESULT)hBrushBackground;
+        }
+
+        // Check if the control is the LogBox (to set text color to blue)
+        if (hControl == hLogBox) {
+            SetTextColor(hdcStatic, RGB(0, 0, 255));  // Set text color to blue
+            SetBkColor(hdcStatic, RGB(240, 240, 240));  // Set background color to light gray
+            return (LRESULT)hBrushBackground;
+        }
+
+        // For other static controls, use the default colors
+        SetTextColor(hdcStatic, RGB(255, 0, 0));  // Default text color (blue)
+        SetBkColor(hdcStatic, RGB(240, 240, 240));  // Default background color
+        return (LRESULT)hBrushBackground;
+    }
+
+    case WM_CTLCOLORBTN: {
+         HDC hdcButton = (HDC)wParam;
+        HWND hButton = (HWND)lParam;
+        if (hButton == hAddBtn) {
+            SetTextColor(hdcButton, RGB(0, 128, 0));  // Green text
+            SetBkColor(hdcButton, RGB(144, 238, 144));  // Light Green background
+        }
+        else if (hButton == hDeleteBtn) {
+            SetTextColor(hdcButton, RGB(255, 0, 0));  // Red text
+            SetBkColor(hdcButton, RGB(255, 182, 193));  // Light Pink background
+        }
+        else if (hButton == hStopBtn) {
+            SetTextColor(hdcButton, RGB(0, 0, 255));  // Blue text
+            SetBkColor(hdcButton, RGB(173, 216, 230));  // Light Blue background
+        }
+        else if (hButton == hHelpBtn) {
+            SetTextColor(hdcButton, RGB(128, 0, 128));  // Purple text
+            SetBkColor(hdcButton, RGB(230, 230, 250));  // Light Lavender background
+        } else {
+            SetTextColor(hdcButton, RGB(0, 0, 0));  // Default black text
+            SetBkColor(hdcButton, RGB(255, 255, 255));  // White background
+        }
+
+        SetBkMode(hdcButton, TRANSPARENT);  // Make sure background is transparent
+        return (LRESULT)hBrushBackground;
+    }
+
+    case WM_CTLCOLOREDIT: {
+        HDC hdcEdit = (HDC)wParam;
+        HWND hControl = (HWND)lParam;
+        if (hControl == hBlacklist) {
+            SetTextColor(hdcEdit, RGB(0, 0, 0));  // Black text color
+            SetBkColor(hdcEdit, RGB(255, 255, 204));  // Light yellow background
+            return (LRESULT)hBrushBackground;
+        }
+        break;
+    }
     case WM_DESTROY:
+        DeleteObject(hBrushBackground);
         KillTimer(hwnd, 1);
         PostQuitMessage(0);
         break;
@@ -168,6 +260,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     return 0;
 }
+
 HWND CreateMainWindow(HINSTANCE hInstance, int nCmdShow) {
     const char CLASS_NAME[] = "Proxy GUI";
 
