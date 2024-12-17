@@ -7,6 +7,8 @@
 #include "../content_filter/content_filter.h" 
 #include "../gui/proxy_gui.h" 
 
+extern std::map<std::string, std::vector<std::pair<int, int>>> bannedTimes;
+
 ProxyServer::ProxyServer(int port, const std::string& upstreamHost, int upstreamPort, HWND hWndGUI)
     : port(port), upstreamHost(upstreamHost), upstreamPort(upstreamPort),hWndGUI(hWndGUI),
       serverSocket(INVALID_SOCKET),runningHosts(){};       
@@ -32,7 +34,7 @@ void ProxyServer::start() {
         throw std::runtime_error("Failed to bind or listen on socket");
     }
 
-    std::cout << "Proxy server listening on port " << port << std::endl;
+    logToGUI("Proxy server listening on port " + port);
 
     while (true) {
         SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
@@ -75,6 +77,26 @@ void ProxyServer::addHostToRunningList(const std::string& host) {
         }
     }
 }
+int ProxyServer::getCurrentHour() {
+    std::time_t now = std::time(nullptr);
+    std::tm* localTime = std::localtime(&now);
+    return localTime->tm_hour;
+}
 
-
-
+bool ProxyServer::isAccessBanned(const std::string& url) {
+    int currentHour = getCurrentHour();
+    for (const auto& entry : bannedTimes) {
+        const std::string& bannedUrl = entry.first;
+        if (url.find(bannedUrl) != std::string::npos) {
+            for (const auto& timeRange : entry.second) {
+                int startHour = timeRange.first;
+                int endHour = timeRange.second;
+                if ((startHour < endHour && currentHour >= startHour && currentHour < endHour) ||
+                    (startHour >= endHour && (currentHour >= startHour || currentHour < endHour))) {
+                    return true;  // Nếu có, trả về true để chặn URL
+                }
+            }
+        }
+    }
+    return false;  
+}

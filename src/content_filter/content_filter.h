@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <fstream>
+#include <ctime>
 
 // ---------------- Filter Interfaces ----------------
 
@@ -47,6 +48,5 @@ public:
 private:
     std::vector<std::string> keywords;
 };
-
 
 #endif // CONTENT_FILTER_H

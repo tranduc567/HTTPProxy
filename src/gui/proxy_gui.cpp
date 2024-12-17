@@ -11,54 +11,57 @@
 extern BlacklistFilter blacklistFilter;
 extern WhitelistFilter whitelistFilter;
 extern KeywordFilter keywordFilter;
-
+extern HINSTANCE hInstance;
+extern std::map<std::string, std::vector<std::pair<int, int>>> bannedTimes;
 extern int selectedMode;
-
-#define WM_LOG_MESSAGE (WM_USER + 1)  
+extern int selectedTime;
 
 // Hàm xử lý giao diện
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    static HWND hBlacklist, hHosts, hLogBox, hAddBtn, hDeleteBtn, hStopBtn, hHelpBtn, hModeComboBox;
-    static HWND hHostsTitle, hLogBoxTitle;
+    static HWND hBlacklist, hHosts, hLogBox, hBannedTimesBox, hAddBtn, hDeleteBtn, hStopBtn, hHelpBtn, hModeComboBox, hTimeModeComboBox, hSetTimeBtn;
+    static HWND hHostsTitle, hLogBoxTitle, hBannedTimesTitle;
     static HBRUSH hBrushBackground;
     static int windowWidth, windowHeight;
-
     switch (uMsg) {
         case WM_CREATE: {
-        // Tạo ComboBox thay cho radio buttons
         hModeComboBox = CreateWindowA("combobox", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL,
             30, 30, 200, 100, hwnd, (HMENU)ID_COMBO_MODE, NULL, NULL);
-        
-        // Thêm các mục vào ComboBox (Blacklist và Whitelist)
         SendMessageA(hModeComboBox, CB_ADDSTRING, 0, (LPARAM)"Blacklist");
         SendMessageA(hModeComboBox, CB_ADDSTRING, 0, (LPARAM)"Whitelist");
         SendMessageA(hModeComboBox, CB_SETCURSEL, 0, 0); // Mặc định chọn Blacklist
-
-        // Tạo các control khác
+        hTimeModeComboBox = CreateWindowA("combobox", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL,
+            240, 30, 200, 100, hwnd, (HMENU)ID_COMBO_TIME_MODE, NULL, NULL);
+        SendMessageA(hTimeModeComboBox, CB_ADDSTRING, 0, (LPARAM)"Time Filter Off");
+        SendMessageA(hTimeModeComboBox, CB_ADDSTRING, 0, (LPARAM)"Time Filter On");
+        SendMessageA(hTimeModeComboBox, CB_SETCURSEL, 0, 1); // Mặc định là Off
         hBlacklist = CreateWindowA("edit", NULL, 
-         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL, 
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL, 
         30, 60, 400, 200, hwnd, (HMENU)ID_LIST_BLACKLIST, NULL, NULL);
         
         hHosts = CreateWindowA("edit", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY,
             450, 60, 400, 200, hwnd, (HMENU)ID_LIST_HOSTS, NULL, NULL);
         
         hLogBox = CreateWindowA("edit", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_READONLY | WS_VSCROLL,
-            30, 280, 820, 200, hwnd, (HMENU)ID_LOGBOX, NULL, NULL);
+            30, 280, 550, 200, hwnd, (HMENU)ID_LOGBOX, NULL, NULL); // Giảm chiều cao
 
-        // Tạo font cho LogBox
+        hBannedTimesBox = CreateWindowA("edit", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_MULTILINE | ES_READONLY | WS_VSCROLL,
+            600, 280, 250, 200, hwnd, (HMENU)ID_BANNED_TIMES_BOX, NULL, NULL); // Thêm ô mới cho BannedTimes
+
         HFONT hFont = CreateFont(
             15, 0, 0, 0, FW_NORMAL, 0, 0, 0, ANSI_CHARSET,
             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH,
             "Times New Roman"
         );
         SendMessage(hLogBox, WM_SETFONT, (WPARAM)hFont, TRUE);
+        SendMessage(hBannedTimesBox, WM_SETFONT, (WPARAM)hFont, TRUE);
         
         hLogBoxTitle = CreateWindowA("static", "Log Box", WS_CHILD | WS_VISIBLE,
-            30, 250, 820, 30, hwnd, NULL, NULL, NULL);
+            30, 250, 550, 30, hwnd, NULL, NULL, NULL); // LogBoxTitle cho ô LogBox
+        hBannedTimesTitle = CreateWindowA("static", "Banned Times List(Helping you healthier)", WS_CHILD | WS_VISIBLE,
+            600, 250, 250, 30, hwnd, NULL, NULL, NULL);  // Title cho ô mới
+
         hHostsTitle = CreateWindowA("static", "Host Running", WS_CHILD | WS_VISIBLE,
             450, 30, 400, 30, hwnd, NULL, NULL, NULL);  // Đặt HostsTitle ở vị trí thích hợp
-        
-        // Tạo các button
         hAddBtn = CreateWindowA("button", "Update List", WS_CHILD | WS_VISIBLE,
             30, 500, 190, 45, hwnd, (HMENU)ID_BTN_ADD, NULL, NULL);
         hDeleteBtn = CreateWindowA("button", "Delete All", WS_CHILD | WS_VISIBLE,
@@ -67,8 +70,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             480, 500, 180, 45, hwnd, (HMENU)ID_BTN_STOP, NULL, NULL);
         hHelpBtn = CreateWindowA("button", "Help", WS_CHILD | WS_VISIBLE,
             670, 500, 180, 45, hwnd, (HMENU)ID_BTN_HELP, NULL, NULL);
-        
-        SetTimer(hwnd, 1, 1000, NULL);  // Timer ID là 1, khoảng thời gian 1000 ms
+
+        std::string bannedTimesList = "[Banned Times List]\r\n";
+        for (const auto& entry : bannedTimes) {
+            bannedTimesList += entry.first + ":\r\n";
+            for (const auto& time : entry.second) {
+                bannedTimesList += "  " + std::to_string(time.first) + ":00 to " + std::to_string(time.second) + ":00\r\n";
+            }
+        }
+        SendMessageA(hBannedTimesBox, WM_SETTEXT, 0, (LPARAM)bannedTimesList.c_str());
+        SetTimer(hwnd, 1, 2000, NULL);  // Timer ID là 1, khoảng thời gian 1000 ms
         break;
     }
 
@@ -85,22 +96,29 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         // Di chuyển các control
         MoveWindow(hBlacklist, 30, 60, controlWidth, controlHeight, TRUE);
         MoveWindow(hHosts, windowWidth / 2 + 20, 60, controlWidth, controlHeight, TRUE);
-        MoveWindow(hLogBox, 30, windowHeight / 2 - 10, windowWidth - 50, logBoxHeight, TRUE);
+        MoveWindow(hLogBox, 30, windowHeight / 2 - 10, 550, logBoxHeight, TRUE);
+        MoveWindow(hBannedTimesBox, 600, windowHeight / 2 - 10, 250, logBoxHeight - 10, TRUE); // Di chuyển ô BannedTimesBox
 
-        MoveWindow(hAddBtn, 30, windowHeight - 100, 180, 45, TRUE);
-        MoveWindow(hDeleteBtn, 230, windowHeight - 100, 180, 45, TRUE);
-        MoveWindow(hStopBtn, 430, windowHeight - 100, 180, 45, TRUE);
-        MoveWindow(hHelpBtn, 620, windowHeight - 100, 180, 45, TRUE);
+        MoveWindow(hAddBtn, 30, windowHeight - 80, 180, 45, TRUE);
+        MoveWindow(hDeleteBtn, 230, windowHeight - 80, 180, 45, TRUE);
+        MoveWindow(hStopBtn, 430, windowHeight - 80, 180, 45, TRUE);
+        MoveWindow(hHelpBtn, 620, windowHeight - 80, 180, 45, TRUE);
 
         MoveWindow(hHostsTitle, windowWidth / 2 + 20, 20, controlWidth, 30, TRUE);
-        MoveWindow(hLogBoxTitle, 30, windowHeight / 2 - 50, windowWidth - 60, 30, TRUE);
+        MoveWindow(hLogBoxTitle, 30, windowHeight / 2 - 50, 550, 30, TRUE);
+        MoveWindow(hBannedTimesTitle, 600, windowHeight / 2 - 50, 250, 30, TRUE);  // Title cho ô BannedTimes
 
         break;
     }
-
     case WM_COMMAND: {
         int wmId = LOWORD(wParam);
         switch (wmId) {
+         case ID_COMBO_TIME_MODE: { 
+            selectedTime = SendMessageA(hTimeModeComboBox, CB_GETCURSEL, 0, 0); 
+            const char* mode = (selectedTime == 1) ? "[INFO] Time Filter On selected.\r\n" : "[INFO] Time Filter Off selected.\r\n";
+            SendMessageA(hLogBox, EM_REPLACESEL, 0, (LPARAM)mode);
+            break;
+        }
         case ID_COMBO_MODE: {
             // Đọc giá trị của ComboBox để xác định chế độ
             selectedMode = SendMessageA(hModeComboBox, CB_GETCURSEL, 0, 0);

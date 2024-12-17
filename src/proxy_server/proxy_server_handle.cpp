@@ -9,6 +9,8 @@
 #include <sstream>
 #include <iomanip>
 extern int selectedMode;
+extern int selectedTime ;
+
 std::string getCurrentTime() {
     std::time_t now = std::time(nullptr);
     std::tm* localTime = std::localtime(&now);
@@ -25,14 +27,13 @@ std::string getCurrentTime() {
     return oss.str();
 }
 
-
 void ProxyServer::handleClient(SOCKET clientSocket) {
     char buffer[4096]; // Buffer to hold the incoming data
 
     // Attempt to read data from the client
     int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
     if (bytesRead <= 0) {
-        std::cout << "Error reading data from client or connection closed." << std::endl;
+        logToGUI("Error reading data from client or connection closed.");
         closesocket(clientSocket);
         return;
     }
@@ -56,42 +57,41 @@ void ProxyServer::handleClient(SOCKET clientSocket) {
     }
 
     if (host.empty()) {
-        std::cout << "Host not found in request." << std::endl;
         closesocket(clientSocket);
         return;
     }
 
-    // Get the current time for the log message
     std::string currentTime = getCurrentTime();
-
-    if(!selectedMode){
+    if(selectedTime){
+        if (isAccessBanned(host)) {
+            std::string logMessage = "[" + currentTime + "] Access denied to: " + host + " by Times Filter" + "\n";
+            logToGUI(logMessage);
+            if (!selectedMode) {
+                sendRedirectResponse(clientSocket);
+            } else {
+                sendBlockedResponse(clientSocket);
+            }
+            closesocket(clientSocket);
+            return;
+        }
+    }
+    if (!selectedMode) {
         if (blacklistFilter.applyFilter(host)) {
             std::string logMessage = "[" + currentTime + "] Host blocked by blacklist: " + host + "\n";
             logToGUI(logMessage);
-            sendRedirectResponse(clientSocket); // Send a redirect response for blocked hosts
+            sendRedirectResponse(clientSocket); // Gửi phản hồi chuyển hướng cho các host bị chặn
             closesocket(clientSocket);
             return;
         }
-    }
-    else{
-         if (!whitelistFilter.applyFilter(host)) {
+    } else {
+        if (!whitelistFilter.applyFilter(host)) {
             std::string logMessage = "[" + currentTime + "] Host blocked by whitelist filter: " + host + "\n";
             logToGUI(logMessage);
-            sendBlockedResponse(clientSocket); // Send blocked response for non-whitelisted hosts
+            sendBlockedResponse(clientSocket); // Gửi phản hồi blocked cho các host không có trong whitelist
             closesocket(clientSocket);
             return;
         }
     }
-    // // Apply Keyword Filter: Block the request if restricted keywords are found in the body
-    // if (keywordFilter.applyFilter(request)) {
-    //     std::string logMessage = "[" + currentTime + "] Request contains restricted keyword, blocking host: " + host + "\n";
-    //     logToGUI(logMessage);
-    //     sendBlockedResponse(clientSocket); // Send a blocked response for keyword matches
-    //     closesocket(clientSocket);
-    //     return;
-    // }
-
-    // Add host to the running hosts list
     addHostToRunningList(host + "\n");
 
     // Proceed with further processing of the request (HTTP or HTTPS)
@@ -108,7 +108,6 @@ void ProxyServer::handleClient(SOCKET clientSocket) {
     closesocket(clientSocket);
 }
 
-
 // Helper function to send a redirect response
 void ProxyServer::sendRedirectResponse(SOCKET clientSocket) {
     std::string response = "HTTP/1.1 301 Moved Permanently\r\n"
@@ -117,7 +116,6 @@ void ProxyServer::sendRedirectResponse(SOCKET clientSocket) {
                            "Cache-Control: no-cache\r\n"
                            "\r\n";
     send(clientSocket, response.c_str(), response.size(), 0);
-    std::cout << "Redirect response sent." << std::endl;
 }
 
 // Helper function to send a blocked response
@@ -127,7 +125,6 @@ void ProxyServer::sendBlockedResponse(SOCKET clientSocket) {
                            "Cache-Control: no-cache\r\n"
                            "\r\n";
     send(clientSocket, response.c_str(), response.size(), 0);
-    std::cout << "Blocked response sent." << std::endl;
 }
 
 void ProxyServer::handleHTTP(SOCKET clientSocket, char* buffer, int bytesRead) {
