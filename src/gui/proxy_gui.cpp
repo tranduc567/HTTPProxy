@@ -200,25 +200,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         case ID_BTN_HELP:
                MessageBoxW(
-        NULL,
-        L"Proxy Server GUI - Hướng dẫn sử dụng:\n\n"
-        L"1. Chọn chế độ (Blacklist hoặc Whitelist) từ menu thả xuống phía trên cùng bên trái.\n"
-        L"2. Thêm các địa chỉ vào danh sách tương ứng bằng cách nhập vào ô bên dưới và nhấn 'Save List'.\n"
-        L"3. Chọn chế độ Time Filter (On/Off) để kích hoạt hoặc tắt bộ lọc thời gian.\n"
-        L"4. Sử dụng các nút sau:\n"
-        L"   - Save List: Lưu danh sách vào Blacklist hoặc Whitelist.\n"
-        L"   - Delete All: Xóa toàn bộ nội dung trong các ô danh sách.\n"
-        L"   - Stop Proxy: Dừng proxy server và đóng ứng dụng.\n"
-        L"   - Help: Hiển thị hướng dẫn sử dụng này.\n\n"
-        L"5. Các khu vực hiển thị:\n"
-        L"   - Hosts Running: Danh sách các host đang chạy.\n"
-        L"   - Log Box: Hiển thị các thông báo nhật ký hoạt động.\n"
-        L"   - Banned Times List: Danh sách thời gian bị cấm (giúp bạn lành mạnh hơn).\n\n"
-        L"Lưu ý: Thay đổi được áp dụng tự động sau khi bạn lưu danh sách.",
-        L"Help",
-        MB_OK | MB_HELP
-    );
-    return 0;
+                NULL,
+                L"Proxy Server GUI - Hướng dẫn sử dụng:\n\n"
+                L"1. Chọn chế độ (Blacklist hoặc Whitelist) từ menu thả xuống phía trên cùng bên trái.\n"
+                L"2. Thêm các địa chỉ vào danh sách tương ứng bằng cách nhập vào ô bên dưới và nhấn 'Save List'.\n"
+                L"3. Chọn chế độ Time Filter (On/Off) để kích hoạt hoặc tắt bộ lọc thời gian.\n"
+                L"4. Sử dụng các nút sau:\n"
+                L"   - Save List: Lưu danh sách vào Blacklist hoặc Whitelist.\n"
+                L"   - Delete All: Xóa toàn bộ nội dung trong các ô danh sách.\n"
+                L"   - Stop Proxy: Dừng proxy server và đóng ứng dụng.\n"
+                L"   - Help: Hiển thị hướng dẫn sử dụng này.\n\n"
+                L"5. Các khu vực hiển thị:\n"
+                L"   - Hosts Running: Danh sách các host đang chạy.\n"
+                L"   - Log Box: Hiển thị các thông báo nhật ký hoạt động.\n"
+                L"   - Banned Times List: Danh sách thời gian bị cấm (giúp bạn lành mạnh hơn).\n\n"
+                L"Lưu ý: Thay đổi được áp dụng tự động sau khi bạn lưu danh sách.",
+                L"Help",
+                MB_OK | MB_HELP
+            );
         break;
 
         default:
