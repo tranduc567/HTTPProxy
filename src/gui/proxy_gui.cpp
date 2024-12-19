@@ -10,7 +10,6 @@
 // Sử dụng extern để tham chiếu đến các biến toàn cục
 extern BlacklistFilter blacklistFilter;
 extern WhitelistFilter whitelistFilter;
-extern KeywordFilter keywordFilter;
 extern HINSTANCE hInstance;
 extern std::map<std::string, std::vector<std::pair<int, int>>> bannedTimes;
 extern int selectedMode;
@@ -62,7 +61,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
         hHostsTitle = CreateWindowA("static", "Host Running", WS_CHILD | WS_VISIBLE,
             450, 30, 400, 30, hwnd, NULL, NULL, NULL);  // Đặt HostsTitle ở vị trí thích hợp
-        hAddBtn = CreateWindowA("button", "Update List", WS_CHILD | WS_VISIBLE,
+        hAddBtn = CreateWindowA("button", "Save List", WS_CHILD | WS_VISIBLE,
             30, 500, 190, 45, hwnd, (HMENU)ID_BTN_ADD, NULL, NULL);
         hDeleteBtn = CreateWindowA("button", "Delete All", WS_CHILD | WS_VISIBLE,
             240, 500, 220, 45, hwnd, (HMENU)ID_BTN_DELETE, NULL, NULL);
@@ -82,31 +81,37 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         SetTimer(hwnd, 1, 2000, NULL);  // Timer ID là 1, khoảng thời gian 1000 ms
         break;
     }
-
     case WM_SIZE: {
         // Cập nhật kích thước cửa sổ
         windowWidth = LOWORD(lParam);
         windowHeight = HIWORD(lParam);
 
         // Tính toán lại kích thước và vị trí các control
-        int controlWidth = windowWidth / 2 - 40;
+        int controlWidth = (windowWidth - 100) / 2; // Khoảng cách giữa hai control và lề là 50
         int controlHeight = windowHeight / 3 - 40;
+        int logBoxWidth = windowWidth - 250; // Để lại khoảng cách cho ô BannedTimes
         int logBoxHeight = windowHeight / 3 - 40;
+        int buttonWidth = 180;
+        int buttonHeight = 45;
+        int buttonSpacing = 20; // Khoảng cách giữa các nút
 
         // Di chuyển các control
         MoveWindow(hBlacklist, 30, 60, controlWidth, controlHeight, TRUE);
-        MoveWindow(hHosts, windowWidth / 2 + 20, 60, controlWidth, controlHeight, TRUE);
-        MoveWindow(hLogBox, 30, windowHeight / 2 - 10, 550, logBoxHeight, TRUE);
-        MoveWindow(hBannedTimesBox, 600, windowHeight / 2 - 10, 250, logBoxHeight - 10, TRUE); // Di chuyển ô BannedTimesBox
+        MoveWindow(hHosts, windowWidth - controlWidth - 30, 60, controlWidth, controlHeight, TRUE);
+        MoveWindow(hLogBox, 30, windowHeight / 2 - 10, logBoxWidth, logBoxHeight, TRUE);
+        MoveWindow(hBannedTimesBox, windowWidth - 200, windowHeight / 2 - 10, 150, logBoxHeight - 10, TRUE); // Di chuyển ô BannedTimesBox
 
-        MoveWindow(hAddBtn, 30, windowHeight - 80, 180, 45, TRUE);
-        MoveWindow(hDeleteBtn, 230, windowHeight - 80, 180, 45, TRUE);
-        MoveWindow(hStopBtn, 430, windowHeight - 80, 180, 45, TRUE);
-        MoveWindow(hHelpBtn, 620, windowHeight - 80, 180, 45, TRUE);
+        // Di chuyển các nút
+        int buttonY = windowHeight - 80;
+        MoveWindow(hAddBtn, 30, buttonY, buttonWidth, buttonHeight, TRUE);
+        MoveWindow(hDeleteBtn, 30 + buttonWidth + buttonSpacing, buttonY, buttonWidth, buttonHeight, TRUE);
+        MoveWindow(hStopBtn, 30 + 2 * (buttonWidth + buttonSpacing), buttonY, buttonWidth, buttonHeight, TRUE);
+        MoveWindow(hHelpBtn, 30 + 3 * (buttonWidth + buttonSpacing), buttonY, buttonWidth, buttonHeight, TRUE);
 
-        MoveWindow(hHostsTitle, windowWidth / 2 + 20, 20, controlWidth, 30, TRUE);
-        MoveWindow(hLogBoxTitle, 30, windowHeight / 2 - 50, 550, 30, TRUE);
-        MoveWindow(hBannedTimesTitle, 600, windowHeight / 2 - 50, 250, 30, TRUE);  // Title cho ô BannedTimes
+        // Di chuyển tiêu đề
+        MoveWindow(hHostsTitle, windowWidth - controlWidth - 30, 20, controlWidth, 30, TRUE);
+        MoveWindow(hLogBoxTitle, 30, windowHeight / 2 - 50, logBoxWidth, 30, TRUE);
+        MoveWindow(hBannedTimesTitle, windowWidth - 200, windowHeight / 2 - 50, 150, 30, TRUE); // Title cho ô BannedTimes
 
         break;
     }
@@ -194,19 +199,40 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
 
         case ID_BTN_HELP:
-            MessageBoxA(hwnd,
-                "This is a Proxy Server GUI.\n"
-                "1. Add to List: Adds a host to the blacklist or whitelist based on the selected mode.\n"
-                "2. Delete from List: Removes a host from the list.\n"
-                "3. Stop Proxy: Stops the proxy server.\n",
-                "Help", MB_OK | MB_HELP);
-            break;
+               MessageBoxW(
+        NULL,
+        L"Proxy Server GUI - Hướng dẫn sử dụng:\n\n"
+        L"1. Chọn chế độ (Blacklist hoặc Whitelist) từ menu thả xuống phía trên cùng bên trái.\n"
+        L"2. Thêm các địa chỉ vào danh sách tương ứng bằng cách nhập vào ô bên dưới và nhấn 'Save List'.\n"
+        L"3. Chọn chế độ Time Filter (On/Off) để kích hoạt hoặc tắt bộ lọc thời gian.\n"
+        L"4. Sử dụng các nút sau:\n"
+        L"   - Save List: Lưu danh sách vào Blacklist hoặc Whitelist.\n"
+        L"   - Delete All: Xóa toàn bộ nội dung trong các ô danh sách.\n"
+        L"   - Stop Proxy: Dừng proxy server và đóng ứng dụng.\n"
+        L"   - Help: Hiển thị hướng dẫn sử dụng này.\n\n"
+        L"5. Các khu vực hiển thị:\n"
+        L"   - Hosts Running: Danh sách các host đang chạy.\n"
+        L"   - Log Box: Hiển thị các thông báo nhật ký hoạt động.\n"
+        L"   - Banned Times List: Danh sách thời gian bị cấm (giúp bạn lành mạnh hơn).\n\n"
+        L"Lưu ý: Thay đổi được áp dụng tự động sau khi bạn lưu danh sách.",
+        L"Help",
+        MB_OK | MB_HELP
+    );
+    return 0;
+        break;
 
         default:
             break;
         }
         break;
     }
+    case WM_ERASEBKGND: {
+            HDC hdc = (HDC)wParam;
+            RECT rc;
+            GetClientRect(hwnd, &rc);
+            FillRect(hdc, &rc, hBrushBackground);
+            return 1; 
+        }
 
     case WM_CTLCOLORSTATIC: {
         HDC hdcStatic = (HDC)wParam;

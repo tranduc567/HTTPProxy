@@ -15,7 +15,6 @@
 // ---------------- Global Filters ----------------
 extern BlacklistFilter blacklistFilter;
 extern WhitelistFilter whitelistFilter;
-extern KeywordFilter keywordFilter;
 extern std::map<std::string, std::vector<std::pair<int, int>>> bannedTimes;
 
 class ProxyServer {
@@ -26,7 +25,6 @@ public:
     void handleClient(SOCKET clientSocket);
     void cleanup();
     void sendRedirectResponse(SOCKET clientSocket);
-    void handleBlacklistManagement(SOCKET clientSocket, const std::string& request);
     void sendBlockedResponse(SOCKET clientSocket);
     void handleHTTP(SOCKET clientSocket, char* buffer, int bytesRead);
     void handleHTTPS(SOCKET clientSocket, char* buffer, int bytesRead);

@@ -8,7 +8,6 @@
 
 BlacklistFilter blacklistFilter;
 WhitelistFilter whitelistFilter;
-KeywordFilter keywordFilter;
 int selectedMode;
 int selectedTime;
 HINSTANCE hInstance = GetModuleHandle(NULL);

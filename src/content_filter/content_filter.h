@@ -17,7 +17,6 @@ public:
     bool applyFilter(const std::string& request);
     void addToBlacklist(const std::string& host);
     void removeFromBlacklist(const std::string& host);
-    void saveData(std::ofstream& file) const;
     void clear(); // Thêm hàm clear
 private:
     std::unordered_set<std::string> blacklist;
@@ -30,23 +29,10 @@ public:
     bool applyFilter(const std::string& request);
     void addToWhitelist(const std::string& host);
     void removeFromWhitelist(const std::string& host);
-    void saveData(std::ofstream& file) const;
     void clear(); // Thêm hàm clear
 private:
     std::unordered_set<std::string> whitelist;
 };
 
-class KeywordFilter {
-public:
-    KeywordFilter() = default;
-    KeywordFilter(const std::vector<std::string>& keywordList);
-    bool applyFilter(const std::string& request);
-    void addKeyword(const std::string& keyword);
-    void removeKeyword(const std::string& keyword);
-    void saveData(std::ofstream& file) const;
-    void clear(); // Thêm hàm clear
-private:
-    std::vector<std::string> keywords;
-};
 
 #endif // CONTENT_FILTER_H
